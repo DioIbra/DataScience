@@ -1,0 +1,103 @@
+---
+title: "data_science"
+author: "123220158_123220203"
+date: "2024-12-09"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+# Install dan muat library
+install.packages(c("tidyverse", "caret", "randomForest", "ggplot2", "corrplot"))
+library(tidyverse)
+library(caret)
+library(randomForest)
+library(ggplot2)
+library(corrplot)
+
+```
+```{r}
+# Baca file CSV
+data <- read.csv("student-mat.csv", sep = ";")
+View(data)
+
+```
+```{r}
+str(data)
+summary(data)
+
+```
+```{r}
+ggplot(data, aes(x = G3)) + 
+    geom_histogram(binwidth = 1, fill = "blue", color = "white") +
+    labs(title = "Distribusi Nilai Akhir (G3)")
+
+```
+```{r}
+sum(is.na(data))
+
+```
+```{r}
+selected_features <- data %>% 
+    select(G1, G2, Medu, Fedu, studytime, G3)
+
+```
+```{r}
+corr_matrix <- cor(selected_features)
+corrplot(corr_matrix, method = "circle", type = "upper")
+
+```
+```{r}
+set.seed(123)
+trainIndex <- createDataPartition(selected_features$G3, p = 0.8, list = FALSE)
+trainData <- selected_features[trainIndex, ]
+testData <- selected_features[-trainIndex, ]
+
+```
+```{r}
+model_lm <- lm(G3 ~ ., data = trainData)
+summary(model_lm)
+
+```
+
+
+
+```{r}
+model_rf <- randomForest(G3 ~ ., data = trainData, ntree = 100)
+print(model_rf)
+
+```
+```{r}
+predictions_lm <- predict(model_lm, testData)
+predictions_rf <- predict(model_rf, testData)
+
+```
+```{r}
+# Regresi Linear
+mse_lm <- mean((testData$G3 - predictions_lm)^2)
+r2_lm <- cor(testData$G3, predictions_lm)^2
+cat("Linear Regression - MSE:", mse_lm, "R²:", r2_lm, "\n")
+
+# Random Forest
+mse_rf <- mean((testData$G3 - predictions_rf)^2)
+r2_rf <- cor(testData$G3, predictions_rf)^2
+cat("Random Forest - MSE:", mse_rf, "R²:", r2_rf, "\n")
+
+```
+```{r}
+ggplot(data.frame(Actual = testData$G3, Predicted = predictions_rf), aes(x = Actual, y = Predicted)) +
+    geom_point(color = "blue") +
+    geom_abline(slope = 1, intercept = 0, color = "red") +
+    labs(title = "Prediksi vs Aktual", x = "Nilai Aktual", y = "Nilai Prediksi")
+
+```
+```{r}
+saveRDS(model_rf, "random_forest_model.rds")
+
+```
+
+
